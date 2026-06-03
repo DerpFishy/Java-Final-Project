@@ -86,6 +86,30 @@ class TaskServiceTest {
   }
 
   @Test
+  void searchTasksByKeyword_matchesTitleAndProjectIgnoringCase() {
+    service.createTask("Buy milk", Priority.LOW, null, "Errands");
+    service.createTask("Write report", Priority.HIGH, null, "School");
+    service.createTask("Clean room", Priority.MEDIUM, null, "Home");
+
+    List<Task> titleMatches = service.searchTasksByKeyword("MILK");
+    assertEquals(1, titleMatches.size());
+    assertEquals("Buy milk", titleMatches.get(0).getTitle());
+
+    List<Task> projectMatches = service.searchTasksByKeyword("school");
+    assertEquals(1, projectMatches.size());
+    assertEquals("Write report", projectMatches.get(0).getTitle());
+  }
+
+  @Test
+  void searchTasksByKeyword_returnsEmptyListForBlankKeyword() {
+    service.createTask("Buy milk", Priority.LOW, null, "Errands");
+
+    assertTrue(service.searchTasksByKeyword("").isEmpty());
+    assertTrue(service.searchTasksByKeyword("   ").isEmpty());
+    assertTrue(service.searchTasksByKeyword(null).isEmpty());
+  }
+
+  @Test
   void getTasksSortedByProject_ordersAlphabetically() {
     service.createTask("t1", Priority.LOW, null, "Zebra");
     service.createTask("t2", Priority.LOW, null, "Alpha");

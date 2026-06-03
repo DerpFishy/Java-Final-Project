@@ -44,7 +44,8 @@ public class ConsoleUI {
         case "5" -> showTasks(service.getTasks(), "All Tasks");
         case "6" -> showTasks(service.getTasksSortedByDate(), "Tasks sorted by due date");
         case "7" -> showTasks(service.getTasksSortedByProject(), "Tasks sorted by project");
-        case "8" -> running = false;
+        case "8" -> handleSearch();
+        case "9" -> running = false;
         default -> System.out.println("Unknown option. Try again.");
       }
     }
@@ -60,7 +61,8 @@ public class ConsoleUI {
     System.out.println(" 5) List all tasks");
     System.out.println(" 6) List sorted by due date");
     System.out.println(" 7) List sorted by project");
-    System.out.println(" 8) Quit");
+    System.out.println(" 8) Search tasks by keyword");
+    System.out.println(" 9) Quit");
     System.out.print("Choose: ");
   }
 
@@ -102,6 +104,15 @@ public class ConsoleUI {
     String id = prompt("Task ID to delete");
     new DeleteTaskCommand(service, id).execute();
     System.out.println("Task deleted.");
+  }
+
+  private void handleSearch() {
+    String keyword = prompt("Keyword");
+    if (keyword.isBlank()) {
+      System.out.println("Keyword cannot be empty.");
+      return;
+    }
+    showTasks(service.searchTasksByKeyword(keyword), "Search results for \"" + keyword + "\"");
   }
 
   private void showTasks(List<Task> tasks, String header) {

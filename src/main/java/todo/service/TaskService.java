@@ -3,6 +3,7 @@ package todo.service;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import todo.event.EventBus;
@@ -77,6 +78,19 @@ public class TaskService {
     return repository.findAll();
   }
 
+  /** Returns tasks whose title or project contains the keyword, ignoring case. */
+  public List<Task> searchTasksByKeyword(String keyword) {
+    if (keyword == null || keyword.isBlank()) {
+      return List.of();
+    }
+
+    String normalizedKeyword = keyword.toLowerCase(Locale.ROOT);
+    return repository.findAll().stream()
+        .filter(task -> containsKeyword(task.getTitle(), normalizedKeyword)
+            || containsKeyword(task.getProject(), normalizedKeyword))
+        .toList();
+  }
+
   /** Returns all tasks sorted by due date ascending (null dates last). */
   public List<Task> getTasksSortedByDate() {
     return repository.findAll().stream()
@@ -93,5 +107,9 @@ public class TaskService {
             Task::getProject,
             Comparator.nullsLast(Comparator.naturalOrder())))
         .toList();
+  }
+
+  private boolean containsKeyword(String value, String normalizedKeyword) {
+    return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
   }
 }
