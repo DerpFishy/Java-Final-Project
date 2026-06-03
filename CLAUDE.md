@@ -14,3 +14,15 @@
 - Javadoc on every public class and non-trivial public method.
 - Prefer package-private visibility over `public` when a class is only used inside its package.
 - No `null` returns from collections-shaped APIs — return empty collections or `Optional`.
+
+## OOP Principles
+
+**Single responsibility** — one class, one job. When a class grows, split it by concern rather than adding more methods. Example: `TaskSetGenerator` delegates calculation to `FrameSizeCalculator` and validation to `TaskSetValidator`.
+
+**Stateless utilities** — group pure, stateless operations into a final utility class with a private constructor and `static` methods (e.g., `JsonIO`) instead of leaking logic into instances or mixed-bag classes.
+
+**Template method via `parse()`** — `AppBaseModel.loadFromJson()` defines the loading skeleton, using a `protected abstract` method `parse()` that subclasses override for custom construction logic.
+
+**Dependency Injection (DI)** — accept collaborators via constructor parameters, leveraging interface abstractions where possible. This keeps classes highly testable and loosely coupled without relying on reflection hacks or global state.
+
+**Private by default** — use the `private` access modifier for all internal methods and fields. Use `protected` only when explicit subclass overriding is required, and expose public APIs strictly through targeted methods.
