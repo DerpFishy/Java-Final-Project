@@ -63,3 +63,6 @@ Thumbs.db
 
 # ===== (Optional) Env / secrets =====
 .env
+
+# ===== Runtime data =====
+tasks.dat
