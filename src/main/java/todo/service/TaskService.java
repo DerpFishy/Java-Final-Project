@@ -91,6 +91,13 @@ public class TaskService {
         .toList();
   }
 
+  /** Returns tasks filtered by the given priority. */
+  public List<Task> getTasksByPriority(Priority priority) {
+    return repository.findAll().stream()
+        .filter(task -> task.getPriority() == priority)
+        .toList();
+  }
+
   /** Returns all tasks sorted by due date ascending (null dates last). */
   public List<Task> getTasksSortedByDate() {
     return repository.findAll().stream()

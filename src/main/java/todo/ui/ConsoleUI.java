@@ -45,7 +45,8 @@ public class ConsoleUI {
         case "6" -> showTasks(service.getTasksSortedByDate(), "Tasks sorted by due date");
         case "7" -> showTasks(service.getTasksSortedByProject(), "Tasks sorted by project");
         case "8" -> handleSearch();
-        case "9" -> running = false;
+        case "9" -> handleFilterByPriority();
+        case "0" -> running = false;
         default -> System.out.println("Unknown option. Try again.");
       }
     }
@@ -62,14 +63,15 @@ public class ConsoleUI {
     System.out.println(" 6) List sorted by due date");
     System.out.println(" 7) List sorted by project");
     System.out.println(" 8) Search tasks by keyword");
-    System.out.println(" 9) Quit");
+    System.out.println(" 9) Filter by priority");
+    System.out.println(" 0) Quit");
     System.out.print("Choose: ");
   }
 
   private void handleAdd() {
     String title = prompt("Title");
     Priority priority = promptPriority();
-    LocalDate dueDate = promptDate("Due date (yyyy-mm-dd, or blank to skip)");
+    LocalDate dueDate = promptDate("Due date (yyyy-mm-dd)");
     String project = prompt("Project (or blank to skip)");
     new AddTaskCommand(service, title, priority, dueDate, project.isBlank() ? null : project)
         .execute();
@@ -81,7 +83,7 @@ public class ConsoleUI {
     System.out.println("Leave blank to keep current value.");
     String title = prompt("New title");
     Priority priority = promptPriorityOptional();
-    LocalDate dueDate = promptDate("New due date (yyyy-mm-dd, or blank to skip)");
+    LocalDate dueDate = promptDate("New due date (yyyy-mm-dd)");
     String project = prompt("New project");
     new EditTaskCommand(
             service,
@@ -113,6 +115,11 @@ public class ConsoleUI {
       return;
     }
     showTasks(service.searchTasksByKeyword(keyword), "Search results for \"" + keyword + "\"");
+  }
+
+  private void handleFilterByPriority() {
+    Priority priority = promptPriority();
+    showTasks(service.getTasksByPriority(priority), "Tasks with priority " + priority);
   }
 
   private void showTasks(List<Task> tasks, String header) {
