@@ -1,3 +1,20 @@
+## Project
+
+CLI-based todo list app in Java 25, built with Maven (`mvn exec:java` to run, `mvn test` for tests).
+
+**Package root:** `todo.*` under `src/main/java/`
+
+**Architecture:**
+- `task/` — `Task` (id, title, priority, dueDate, project, status), `TaskRepository` interface, `InMemoryTaskRepository` (tests), `FileTaskRepository` (persists to `tasks.dat` via Java serialization)
+- `service/` — `TaskService` (CRUD, editTask, sort by date/project), `TaskStatisticsService` (completion count)
+- `command/` — Command pattern: `AddTaskCommand`, `CompleteTaskCommand`, `EditTaskCommand`, `DeleteTaskCommand`
+- `event/` — Pub/sub `EventBus`; events: `TaskCreatedEvent`, `TaskCompletedEvent`
+- `ui/` — `ConsoleUI`: interactive Scanner menu loop, delegates all mutations to commands
+- `util/` — `IdGenerator` (8-char UUID)
+- `Main` — wires `FileTaskRepository` → `TaskService` → `ConsoleUI`, subscribes event log to `EventBus`
+
+**Test:** `src/test/java/todo/service/TaskServiceTest` — 7 JUnit 5 tests (CRUD, edit partial-update, sort by date, sort by project, null-date ordering)
+
 ## Commits
 
 - **Atomic commits:** one logical change per commit — feature, fix, refactor, test each get their own commit. Never bundle unrelated changes.
