@@ -1,6 +1,7 @@
 package todo;
 
 import java.nio.file.Path;
+import java.util.Scanner;
 
 import todo.event.EventBus;
 import todo.event.TaskCompletedEvent;
@@ -14,6 +15,8 @@ import todo.ui.ConsoleUI;
 public class Main {
 
   public static void main(String[] args) {
+    Scanner scanner = new Scanner(System.in);
+
     Path storePath = Path.of("tasks.dat");
 
     EventBus bus = new EventBus();
@@ -27,6 +30,6 @@ public class Main {
         TaskCompletedEvent.class,
         event -> System.out.println("[event] Task completed: " + event.task().getTitle()));
 
-    new ConsoleUI(taskService).run();
+    new ConsoleUI(taskService, scanner).run();
   }
 }
