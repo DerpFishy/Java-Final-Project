@@ -49,7 +49,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.4.1</version>
         <configuration>
-          <mainClass>todo.Main</mainClass>
+          <mainClass>todo.ui.DesktopMain</mainClass>
         </configuration>
       </plugin>
 
@@ -60,7 +60,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>todo.Main</mainClass>
+              <mainClass>todo.ui.DesktopMain</mainClass>
             </manifest>
           </archive>
         </configuration>
