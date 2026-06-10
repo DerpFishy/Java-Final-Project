@@ -24,9 +24,9 @@ public class ConsoleUI {
   private final TaskService service;
   private final Scanner scanner;
 
-  public ConsoleUI(TaskService service) {
+  public ConsoleUI(TaskService service, Scanner scanner) {
     this.service = service;
-    this.scanner = new Scanner(System.in);
+    this.scanner = scanner;
   }
 
   /** Starts the interactive menu loop. Runs until the user chooses to quit. */
