@@ -58,24 +58,24 @@ public class CalendarPanel extends JPanel {
 
     JButton previousButton = new JButton("<");
     previousButton.setFont(previousButton.getFont().deriveFont(Font.BOLD, 13f));
-    previousButton.setToolTipText("Previous month");
+    previousButton.setToolTipText(text("Previous month", "上個月"));
     previousButton.addActionListener(event -> changeMonth(-1));
 
     JButton nextButton = new JButton(">");
     nextButton.setFont(nextButton.getFont().deriveFont(Font.BOLD, 13f));
-    nextButton.setToolTipText("Next month");
+    nextButton.setToolTipText(text("Next month", "下個月"));
     nextButton.addActionListener(event -> changeMonth(1));
 
-    JButton todayButton = new JButton("Today");
+    JButton todayButton = new JButton(text("Today", "今天"));
     todayButton.setFont(todayButton.getFont().deriveFont(Font.PLAIN, 13f));
     todayButton.addActionListener(event -> selectDate(LocalDate.now()));
 
     monthLabel = new JLabel("", SwingConstants.CENTER);
     monthLabel.setFont(monthLabel.getFont().deriveFont(Font.BOLD, 18f));
 
-    ongoingLabel = new JLabel("Ongoing tasks: 0", SwingConstants.CENTER);
-    overdueLabel = new JLabel("Overdue tasks: 0", SwingConstants.CENTER);
-    completedLabel = new JLabel("Completed tasks: 0", SwingConstants.CENTER);
+    ongoingLabel = new JLabel(text("Ongoing tasks: 0", "進行中任務：0"), SwingConstants.CENTER);
+    overdueLabel = new JLabel(text("Overdue tasks: 0", "逾期任務：0"), SwingConstants.CENTER);
+    completedLabel = new JLabel(text("Completed tasks: 0", "已完成任務：0"), SwingConstants.CENTER);
     ongoingLabel.setFont(ongoingLabel.getFont().deriveFont(Font.PLAIN, 13f));
     overdueLabel.setFont(overdueLabel.getFont().deriveFont(Font.PLAIN, 13f));
     completedLabel.setFont(completedLabel.getFont().deriveFont(Font.PLAIN, 13f));
@@ -167,9 +167,12 @@ public class CalendarPanel extends JPanel {
       }
     }
 
-    ongoingLabel.setText("Ongoing tasks: " + ongoingCount);
-    overdueLabel.setText("Overdue tasks: " + overdueCount);
-    completedLabel.setText("Completed tasks: " + completedCount);
+    ongoingLabel.setText(text("Ongoing tasks: " + ongoingCount,
+        "進行中任務：" + ongoingCount));
+    overdueLabel.setText(text("Overdue tasks: " + overdueCount,
+        "逾期任務：" + overdueCount));
+    completedLabel.setText(text("Completed tasks: " + completedCount,
+        "已完成任務：" + completedCount));
   }
 
   private void addDayHeaders() {
@@ -194,6 +197,12 @@ public class CalendarPanel extends JPanel {
     };
   }
 
+  private String text(String english, String traditionalChinese) {
+    return Locale.getDefault().getLanguage().startsWith("zh")
+        ? traditionalChinese
+        : english;
+  }
+
   private Map<LocalDate, Integer> countTasksByDate() {
     Map<LocalDate, Integer> counts = new HashMap<>();
     for (Task task : tasks) {
@@ -205,8 +214,12 @@ public class CalendarPanel extends JPanel {
   }
 
   private JButton createDayButton(LocalDate date, int taskCount) {
-    String countText = taskCount == 0 ? "" : "<br><small>" + taskCount + " task"
-        + (taskCount == 1 ? "" : "s") + "</small>";
+    String countLabel = taskCount == 0
+        ? ""
+        : taskCount == 1
+            ? text("1 task", "1 個任務")
+            : text(taskCount + " tasks", taskCount + " 個任務");
+    String countText = taskCount == 0 ? "" : "<br><small>" + countLabel + "</small>";
     JButton button = new JButton("<html><center>" + date.getDayOfMonth() + countText
         + "</center></html>");
     button.setHorizontalAlignment(SwingConstants.CENTER);

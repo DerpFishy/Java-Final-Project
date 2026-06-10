@@ -7,6 +7,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -31,6 +32,48 @@ class TaskAppearanceConfigTest {
     TodoUiConfig config = new TodoUiConfig(5);
 
     assertEquals(5, config.getWarningDaysBeforeDueDate());
+  }
+
+  @Test
+  void defaultsShouldUseEnglishLanguage() {
+    TodoUiConfig config = TodoUiConfig.loadFromDefaults();
+
+    assertEquals("en", config.getLanguageCode());
+  }
+
+  @Test
+  void defaultsFollowSystemLocaleWhenSupported() {
+    Locale originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("zh-TW"));
+
+      TodoUiConfig config = TodoUiConfig.loadFromDefaults();
+
+      assertEquals("zh_TW", config.getLanguageCode());
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test
+  void defaultsFallBackToEnglishWhenUnsupported() {
+    Locale originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("fr-FR"));
+
+      TodoUiConfig config = TodoUiConfig.loadFromDefaults();
+
+      assertEquals("en", config.getLanguageCode());
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test
+  void languagePreferenceRoundTripThroughConfig() {
+    TodoUiConfig config = new TodoUiConfig(5, "zh_TW");
+
+    assertEquals("zh_TW", config.getLanguageCode());
   }
 
   @Test

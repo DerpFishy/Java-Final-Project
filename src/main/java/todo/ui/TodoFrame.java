@@ -71,6 +71,9 @@ public class TodoFrame extends JFrame {
     this.service = service;
     this.config = config;
 
+    Locale.setDefault(config.getLocale());
+    setTitle(text("Todo Calendar", "待辦事項行事曆"));
+
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setMinimumSize(new Dimension(1000, 650));
 
@@ -80,12 +83,12 @@ public class TodoFrame extends JFrame {
     taskHeading = new JLabel();
     searchField = new JTextField();
     priorityFilterBox = new JComboBox<>(new Object[] {
-        "All priorities", Priority.LOW, Priority.MEDIUM, Priority.HIGH
+        text("All priorities", "所有優先度"), Priority.LOW, Priority.MEDIUM, Priority.HIGH
     });
-    showAllCheckBox = new JCheckBox("Show all tasks");
-    editButton = new JButton("Edit");
-    completeButton = new JButton("Complete");
-    deleteButton = new JButton("Delete");
+    showAllCheckBox = new JCheckBox(text("Show all tasks", "顯示所有任務"));
+    editButton = new JButton(text("Edit", "編輯"));
+    completeButton = new JButton(text("Complete", "完成"));
+    deleteButton = new JButton(text("Delete", "刪除"));
 
     configureTaskList();
     setContentPane(createContent());
@@ -116,9 +119,9 @@ public class TodoFrame extends JFrame {
     headingPanel.add(taskHeading, BorderLayout.NORTH);
 
     JPanel searchPanel = new JPanel(new BorderLayout(6, 0));
-    searchPanel.add(new JLabel("Search:"), BorderLayout.WEST);
-    searchField.setToolTipText("Search by title or project");
-    searchField.putClientProperty("JTextField.placeholderText", "Type a keyword");
+    searchPanel.add(new JLabel(text("Search:", "搜尋：")), BorderLayout.WEST);
+    searchField.setToolTipText(text("Search by title or project", "依標題或專案搜尋"));
+    searchField.putClientProperty("JTextField.placeholderText", text("Type a keyword", "輸入關鍵字"));
     searchField.getDocument().addDocumentListener(new DocumentListener() {
       @Override
       public void insertUpdate(DocumentEvent event) {
@@ -137,7 +140,7 @@ public class TodoFrame extends JFrame {
     });
     searchPanel.add(searchField, BorderLayout.CENTER);
 
-    JButton clearSearchButton = new JButton("Clear");
+    JButton clearSearchButton = new JButton(text("Clear", "清除"));
     clearSearchButton.addActionListener(event -> {
       searchField.setText("");
       refreshTaskList();
@@ -145,7 +148,7 @@ public class TodoFrame extends JFrame {
     searchPanel.add(clearSearchButton, BorderLayout.EAST);
 
     JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-    filterPanel.add(new JLabel("Priority:"));
+    filterPanel.add(new JLabel(text("Priority:", "優先度：")));
     filterPanel.add(priorityFilterBox);
     filterPanel.add(showAllCheckBox);
 
@@ -158,8 +161,8 @@ public class TodoFrame extends JFrame {
 
     panel.add(new JScrollPane(taskList), BorderLayout.CENTER);
 
-    JButton addButton = new JButton("Add");
-    JButton settingsButton = new JButton("Settings");
+    JButton addButton = new JButton(text("Add", "新增"));
+    JButton settingsButton = new JButton(text("Settings", "設定"));
     addButton.addActionListener(event -> addTask());
     settingsButton.addActionListener(event -> openSettingsDialog());
     editButton.addActionListener(event -> editSelectedTask());
@@ -218,9 +221,9 @@ public class TodoFrame extends JFrame {
     visibleTasks.forEach(taskListModel::addElement);
 
     if (showAllCheckBox.isSelected()) {
-      taskHeading.setText("All Tasks (" + visibleTasks.size() + ")");
+      taskHeading.setText(text("All Tasks", "所有任務") + " (" + visibleTasks.size() + ")");
     } else {
-      taskHeading.setText(DATE_HEADING.format(selectedDate)
+      taskHeading.setText(DATE_HEADING.withLocale(config.getLocale()).format(selectedDate)
           + " (" + visibleTasks.size() + ")");
     }
     updateActionState();
@@ -311,8 +314,8 @@ public class TodoFrame extends JFrame {
 
     int choice = JOptionPane.showConfirmDialog(
         this,
-        "Delete \"" + task.getTitle() + "\"?",
-        "Delete Task",
+        text("Delete \"" + task.getTitle() + "\"?", "刪除 \"" + task.getTitle() + "\"？"),
+        text("Delete Task", "刪除任務"),
         JOptionPane.YES_NO_OPTION,
         JOptionPane.WARNING_MESSAGE);
     if (choice == JOptionPane.YES_OPTION) {
@@ -333,29 +336,43 @@ public class TodoFrame extends JFrame {
   private void openSettingsDialog() {
     JSpinner warningDaysSpinner = new JSpinner(
         new SpinnerNumberModel(config.getWarningDaysBeforeDueDate(), 0, 30, 1));
+    JComboBox<String> languageBox = new JComboBox<>(new String[] {
+        text("English", "English"),
+        text("Traditional Chinese (Taiwan)", "繁體中文（台灣）")
+    });
+    languageBox.setSelectedIndex("zh_TW".equals(config.getLanguageCode()) ? 1 : 0);
 
     JPanel settingsPanel = new JPanel(new BorderLayout(6, 6));
     settingsPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
     JPanel rows = new JPanel(new java.awt.GridLayout(0, 1, 4, 4));
-    rows.add(new JLabel("Highlight tasks due within this many days:"));
+    rows.add(new JLabel(text("Highlight tasks due within this many days:", "以幾天內到期的任務高亮顯示：")));
     rows.add(warningDaysSpinner);
+    rows.add(new JLabel(text("Language:", "語言：")));
+    rows.add(languageBox);
     settingsPanel.add(rows, BorderLayout.CENTER);
 
     int choice = JOptionPane.showConfirmDialog(
         this,
         settingsPanel,
-        "UI Settings",
+        text("UI Settings", "介面設定"),
         JOptionPane.OK_CANCEL_OPTION,
         JOptionPane.PLAIN_MESSAGE);
 
     if (choice == JOptionPane.OK_OPTION) {
+      String languageCode = languageBox.getSelectedIndex() == 1 ? "zh_TW" : "en";
       TodoUiConfig updatedConfig = new TodoUiConfig(
-          ((Number) warningDaysSpinner.getValue()).intValue());
+          ((Number) warningDaysSpinner.getValue()).intValue(), languageCode);
       updatedConfig.save();
+      Locale.setDefault(updatedConfig.getLocale());
       config = updatedConfig;
-      refreshTasks();
+      dispose();
+      new TodoFrame(service, updatedConfig).setVisible(true);
     }
+  }
+
+  private String text(String english, String traditionalChinese) {
+    return "zh_TW".equals(config.getLanguageCode()) ? traditionalChinese : english;
   }
 
   private final class TaskCellRenderer extends DefaultListCellRenderer {
@@ -370,11 +387,15 @@ public class TodoFrame extends JFrame {
       JLabel label = (JLabel) super.getListCellRendererComponent(
           list, value, index, isSelected, cellHasFocus);
       Task task = (Task) value;
-      String project = task.getProject() == null ? "No project" : task.getProject();
-      String dueDate = task.getDueDate() == null ? "No due date" : task.getDueDate().toString();
+      String project = task.getProject() == null
+          ? text("No project", "無專案")
+          : task.getProject();
+      String dueDate = task.getDueDate() == null
+          ? text("No due date", "無到期日")
+          : task.getDueDate().toString();
       String statusPrefix = task.getStatus() == TaskStatus.COMPLETED
-          ? "[Done] "
-          : TaskAppearancePalette.isOverdue(task) ? "[Overdue] " : "";
+          ? text("[Done] ", "[完成] ")
+          : TaskAppearancePalette.isOverdue(task) ? text("[Overdue] ", "[逾期] ") : "";
       Color backgroundColor = TaskAppearancePalette.getStatusColor(task, config);
 
       label.setText("<html><b>" + escape(statusPrefix + task.getTitle()) + "</b><br>"

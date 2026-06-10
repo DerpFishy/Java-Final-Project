@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
@@ -42,7 +43,9 @@ public final class TaskDialog {
     }
 
     JPanel fields = createFieldsPanel(titleField, priorityBox, dateField, projectField);
-    String dialogTitle = task == null ? "Add Task" : "Edit Task";
+    String dialogTitle = task == null
+        ? text("Add Task", "新增任務")
+        : text("Edit Task", "編輯任務");
 
     while (true) {
       int result = JOptionPane.showConfirmDialog(
@@ -57,7 +60,7 @@ public final class TaskDialog {
 
       String title = titleField.getText().trim();
       if (title.isEmpty()) {
-        showValidationError(parent, "Title is required.");
+        showValidationError(parent, text("Title is required.", "標題為必填。"));
         continue;
       }
 
@@ -70,7 +73,9 @@ public final class TaskDialog {
             dueDate,
             project.isEmpty() ? null : project);
       } catch (DateTimeParseException exception) {
-        showValidationError(parent, "Due date must use yyyy-mm-dd format.");
+        showValidationError(
+            parent,
+            text("Due date must use yyyy-mm-dd format.", "到期日必須使用 yyyy-mm-dd 格式。"));
       }
     }
   }
@@ -89,12 +94,14 @@ public final class TaskDialog {
     constraints.anchor = GridBagConstraints.WEST;
     constraints.fill = GridBagConstraints.HORIZONTAL;
 
-    addField(fields, constraints, 0, "Title", titleField);
-    addField(fields, constraints, 1, "Priority", priorityBox);
-    addField(fields, constraints, 2, "Due date", dateField);
-    addField(fields, constraints, 3, "Project", projectField);
+    addField(fields, constraints, 0, text("Title", "標題"), titleField);
+    addField(fields, constraints, 1, text("Priority", "優先度"), priorityBox);
+    addField(fields, constraints, 2, text("Due date", "到期日"), dateField);
+    addField(fields, constraints, 3, text("Project", "專案"), projectField);
 
-    JLabel dateHint = new JLabel("Use yyyy-mm-dd; leave blank for no due date.");
+    JLabel dateHint = new JLabel(
+        text("Use yyyy-mm-dd; leave blank for no due date.",
+            "請使用 yyyy-mm-dd；留空表示無到期日。"));
     constraints.gridx = 1;
     constraints.gridy = 4;
     constraints.weightx = 1;
@@ -126,7 +133,16 @@ public final class TaskDialog {
 
   private static void showValidationError(Component parent, String message) {
     JOptionPane.showMessageDialog(
-        parent, message, "Invalid Task", JOptionPane.ERROR_MESSAGE);
+        parent,
+        message,
+        text("Invalid Task", "任務資料無效"),
+        JOptionPane.ERROR_MESSAGE);
+  }
+
+  private static String text(String english, String traditionalChinese) {
+    return Locale.getDefault().getLanguage().startsWith("zh")
+        ? traditionalChinese
+        : english;
   }
 
   /** Values submitted from the task form. */
