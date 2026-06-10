@@ -23,8 +23,10 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
 
 import todo.command.AddTaskCommand;
 import todo.command.CompleteTaskCommand;
@@ -50,10 +52,16 @@ public class TodoFrame extends JFrame {
   private final JButton editButton;
   private final JButton completeButton;
   private final JButton deleteButton;
+  private TodoUiConfig config;
 
   public TodoFrame(TaskService service) {
+    this(service, TodoUiConfig.load());
+  }
+
+  public TodoFrame(TaskService service, TodoUiConfig config) {
     super("Todo Calendar");
     this.service = service;
+    this.config = config;
 
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setMinimumSize(new Dimension(1000, 650));
@@ -100,12 +108,15 @@ public class TodoFrame extends JFrame {
     panel.add(new JScrollPane(taskList), BorderLayout.CENTER);
 
     JButton addButton = new JButton("Add");
+    JButton settingsButton = new JButton("Settings");
     addButton.addActionListener(event -> addTask());
+    settingsButton.addActionListener(event -> openSettingsDialog());
     editButton.addActionListener(event -> editSelectedTask());
     completeButton.addActionListener(event -> completeSelectedTask());
     deleteButton.addActionListener(event -> deleteSelectedTask());
 
     JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+    actions.add(settingsButton);
     actions.add(addButton);
     actions.add(editButton);
     actions.add(completeButton);
@@ -233,7 +244,35 @@ public class TodoFrame extends JFrame {
         hasSelection && selectedTask.getStatus() != TaskStatus.COMPLETED);
   }
 
-  private static final class TaskCellRenderer extends DefaultListCellRenderer {
+  private void openSettingsDialog() {
+    JSpinner warningDaysSpinner = new JSpinner(
+        new SpinnerNumberModel(config.getWarningDaysBeforeDueDate(), 0, 30, 1));
+
+    JPanel settingsPanel = new JPanel(new BorderLayout(6, 6));
+    settingsPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+    JPanel rows = new JPanel(new java.awt.GridLayout(0, 1, 4, 4));
+    rows.add(new JLabel("Highlight tasks due within this many days:"));
+    rows.add(warningDaysSpinner);
+    settingsPanel.add(rows, BorderLayout.CENTER);
+
+    int choice = JOptionPane.showConfirmDialog(
+        this,
+        settingsPanel,
+        "UI Settings",
+        JOptionPane.OK_CANCEL_OPTION,
+        JOptionPane.PLAIN_MESSAGE);
+
+    if (choice == JOptionPane.OK_OPTION) {
+      TodoUiConfig updatedConfig = new TodoUiConfig(
+          ((Number) warningDaysSpinner.getValue()).intValue());
+      updatedConfig.save();
+      config = updatedConfig;
+      refreshTasks();
+    }
+  }
+
+  private final class TaskCellRenderer extends DefaultListCellRenderer {
 
     @Override
     public Component getListCellRendererComponent(
@@ -247,18 +286,27 @@ public class TodoFrame extends JFrame {
       Task task = (Task) value;
       String project = task.getProject() == null ? "No project" : task.getProject();
       String dueDate = task.getDueDate() == null ? "No due date" : task.getDueDate().toString();
-      String statusPrefix = task.getStatus() == TaskStatus.COMPLETED ? "[Done] " : "";
+      String statusPrefix = task.getStatus() == TaskStatus.COMPLETED
+          ? "[Done] "
+          : TaskAppearancePalette.isOverdue(task) ? "[Overdue] " : "";
+      Color backgroundColor = TaskAppearancePalette.getStatusColor(task, config);
 
       label.setText("<html><b>" + escape(statusPrefix + task.getTitle()) + "</b><br>"
           + escape(task.getPriority() + " | " + dueDate + " | " + project) + "</html>");
       label.setBorder(BorderFactory.createEmptyBorder(5, 7, 5, 7));
-      if (!isSelected && task.getStatus() == TaskStatus.COMPLETED) {
-        label.setForeground(Color.GRAY);
+
+      if (isSelected) {
+        label.setBackground(list.getSelectionBackground());
+        label.setForeground(list.getSelectionForeground());
+      } else {
+        label.setBackground(backgroundColor);
+        label.setForeground(TaskAppearancePalette.getLabelColor(task, false, config));
       }
+      label.setOpaque(true);
       return label;
     }
 
-    private static String escape(String value) {
+    private String escape(String value) {
       return value
           .replace("&", "&amp;")
           .replace("<", "&lt;")
