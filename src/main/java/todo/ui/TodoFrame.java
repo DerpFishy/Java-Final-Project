@@ -11,12 +11,14 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -25,14 +27,18 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import todo.command.AddTaskCommand;
 import todo.command.CompleteTaskCommand;
 import todo.command.DeleteTaskCommand;
 import todo.command.EditTaskCommand;
 import todo.service.TaskService;
+import todo.task.Priority;
 import todo.task.Task;
 import todo.task.TaskStatus;
 import todo.ui.TaskDialog.TaskFormData;
@@ -48,6 +54,8 @@ public class TodoFrame extends JFrame {
   private final DefaultListModel<Task> taskListModel;
   private final JList<Task> taskList;
   private final JLabel taskHeading;
+  private final JTextField searchField;
+  private final JComboBox<Object> priorityFilterBox;
   private final JCheckBox showAllCheckBox;
   private final JButton editButton;
   private final JButton completeButton;
@@ -70,6 +78,10 @@ public class TodoFrame extends JFrame {
     taskListModel = new DefaultListModel<>();
     taskList = new JList<>(taskListModel);
     taskHeading = new JLabel();
+    searchField = new JTextField();
+    priorityFilterBox = new JComboBox<>(new Object[] {
+        "All priorities", Priority.LOW, Priority.MEDIUM, Priority.HIGH
+    });
     showAllCheckBox = new JCheckBox("Show all tasks");
     editButton = new JButton("Edit");
     completeButton = new JButton("Complete");
@@ -99,10 +111,49 @@ public class TodoFrame extends JFrame {
     panel.setPreferredSize(new Dimension(360, 600));
 
     taskHeading.setFont(taskHeading.getFont().deriveFont(Font.BOLD, 17f));
-    JPanel headingPanel = new JPanel(new BorderLayout(4, 4));
-    headingPanel.add(taskHeading, BorderLayout.CENTER);
-    headingPanel.add(showAllCheckBox, BorderLayout.SOUTH);
+
+    JPanel headingPanel = new JPanel(new BorderLayout(6, 6));
+    headingPanel.add(taskHeading, BorderLayout.NORTH);
+
+    JPanel searchPanel = new JPanel(new BorderLayout(6, 0));
+    searchPanel.add(new JLabel("Search:"), BorderLayout.WEST);
+    searchField.setToolTipText("Search by title or project");
+    searchField.putClientProperty("JTextField.placeholderText", "Type a keyword");
+    searchField.getDocument().addDocumentListener(new DocumentListener() {
+      @Override
+      public void insertUpdate(DocumentEvent event) {
+        refreshTaskList();
+      }
+
+      @Override
+      public void removeUpdate(DocumentEvent event) {
+        refreshTaskList();
+      }
+
+      @Override
+      public void changedUpdate(DocumentEvent event) {
+        refreshTaskList();
+      }
+    });
+    searchPanel.add(searchField, BorderLayout.CENTER);
+
+    JButton clearSearchButton = new JButton("Clear");
+    clearSearchButton.addActionListener(event -> {
+      searchField.setText("");
+      refreshTaskList();
+    });
+    searchPanel.add(clearSearchButton, BorderLayout.EAST);
+
+    JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    filterPanel.add(new JLabel("Priority:"));
+    filterPanel.add(priorityFilterBox);
+    filterPanel.add(showAllCheckBox);
+
+    priorityFilterBox.addActionListener(event -> refreshTaskList());
     showAllCheckBox.addActionListener(event -> refreshTaskList());
+
+    headingPanel.add(searchPanel, BorderLayout.CENTER);
+    headingPanel.add(filterPanel, BorderLayout.SOUTH);
     panel.add(headingPanel, BorderLayout.NORTH);
 
     panel.add(new JScrollPane(taskList), BorderLayout.CENTER);
@@ -152,15 +203,16 @@ public class TodoFrame extends JFrame {
 
   private void refreshTaskList() {
     LocalDate selectedDate = calendarPanel.getSelectedDate();
-    List<Task> visibleTasks = service.getTasks().stream()
-        .filter(task -> showAllCheckBox.isSelected()
-            || selectedDate.equals(task.getDueDate()))
-        .sorted(Comparator.comparing(
-            Task::getDueDate,
-            Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparing(Task::getPriority, Comparator.reverseOrder())
-            .thenComparing(Task::getTitle, String.CASE_INSENSITIVE_ORDER))
-        .toList();
+    Priority selectedPriority = priorityFilterBox.getSelectedItem() instanceof Priority
+        ? (Priority) priorityFilterBox.getSelectedItem()
+        : null;
+
+    List<Task> visibleTasks = filterVisibleTasks(
+        service.getTasks(),
+        searchField.getText(),
+        selectedDate,
+        showAllCheckBox.isSelected(),
+        selectedPriority);
 
     taskListModel.clear();
     visibleTasks.forEach(taskListModel::addElement);
@@ -172,6 +224,40 @@ public class TodoFrame extends JFrame {
           + " (" + visibleTasks.size() + ")");
     }
     updateActionState();
+  }
+
+  static List<Task> filterVisibleTasks(
+      List<Task> tasks,
+      String keyword,
+      LocalDate selectedDate,
+      boolean showAll) {
+    return filterVisibleTasks(tasks, keyword, selectedDate, showAll, null);
+  }
+
+  static List<Task> filterVisibleTasks(
+      List<Task> tasks,
+      String keyword,
+      LocalDate selectedDate,
+      boolean showAll,
+      Priority selectedPriority) {
+    String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+
+    return tasks.stream()
+        .filter(task -> normalizedKeyword.isBlank()
+            || containsKeyword(task.getTitle(), normalizedKeyword)
+            || containsKeyword(task.getProject(), normalizedKeyword))
+        .filter(task -> selectedPriority == null || task.getPriority() == selectedPriority)
+        .filter(task -> showAll || selectedDate.equals(task.getDueDate()))
+        .sorted(Comparator.comparing(
+            Task::getDueDate,
+            Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(Task::getPriority, Comparator.reverseOrder())
+            .thenComparing(Task::getTitle, String.CASE_INSENSITIVE_ORDER))
+        .toList();
+  }
+
+  private static boolean containsKeyword(String value, String normalizedKeyword) {
+    return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
   }
 
   private void addTask() {
